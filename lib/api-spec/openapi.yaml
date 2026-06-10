@@ -1,0 +1,1358 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: La Playita de Don Concho - Restaurant Management API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: auth
+  - name: users
+  - name: tables
+  - name: categories
+  - name: products
+  - name: recipes
+  - name: inventory
+  - name: orders
+  - name: kitchen
+  - name: sales
+  - name: expenses
+  - name: analytics
+  - name: dailyClose
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /healthz:
+    get:
+      operationId: healthCheckAlias
+      tags: [health]
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      responses:
+        "200":
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+    post:
+      operationId: createUser
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateUserRequest" }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+  /users/{id}:
+    put:
+      operationId: updateUser
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateUserRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /tables:
+    get:
+      operationId: listTables
+      tags: [tables]
+      responses:
+        "200":
+          description: Tables
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RestaurantTable" }
+  /tables/{id}:
+    get:
+      operationId: getTable
+      tags: [tables]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Table detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TableDetail" }
+  /tables/{id}/status:
+    patch:
+      operationId: updateTableStatus
+      tags: [tables]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [free, occupied, waiting_payment, closed]
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RestaurantTable" }
+  /tables/{id}/open:
+    post:
+      operationId: openTable
+      tags: [tables]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Opened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RestaurantTable" }
+  /tables/{id}/transfer:
+    post:
+      operationId: transferTable
+      tags: [tables]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetTableId]
+              properties:
+                targetTableId: { type: integer }
+      responses:
+        "200":
+          description: Transferred
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Category" }
+    post:
+      operationId: createCategory
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                sortOrder: { type: integer }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      responses:
+        "200":
+          description: Products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+    post:
+      operationId: createProduct
+      tags: [products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProductRequest" }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+  /products/{id}:
+    put:
+      operationId: updateProduct
+      tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProductRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Product" }
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /recipes:
+    get:
+      operationId: listRecipes
+      tags: [recipes]
+      responses:
+        "200":
+          description: Recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Recipe" }
+    post:
+      operationId: createRecipe
+      tags: [recipes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId: { type: integer }
+                notes: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recipe" }
+  /recipes/{id}:
+    get:
+      operationId: getRecipe
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Recipe
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recipe" }
+    put:
+      operationId: updateRecipe
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Recipe" }
+    delete:
+      operationId: deleteRecipe
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+  /recipes/{id}/ingredients:
+    get:
+      operationId: listRecipeIngredients
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Ingredients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RecipeIngredient" }
+    post:
+      operationId: addRecipeIngredient
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inventoryItemId, quantity]
+              properties:
+                inventoryItemId: { type: integer }
+                quantity: { type: number }
+      responses:
+        "200":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeIngredient" }
+    put:
+      operationId: replaceRecipeIngredients
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ingredients]
+              properties:
+                ingredients:
+                  type: array
+                  items:
+                    type: object
+                    required: [inventoryItemId, quantity]
+                    properties:
+                      inventoryItemId: { type: integer }
+                      quantity: { type: number }
+      responses:
+        "200":
+          description: Replaced
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RecipeIngredient" }
+  /recipes/{id}/ingredients/{ingredientId}:
+    put:
+      operationId: updateRecipeIngredient
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: number }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecipeIngredient" }
+    delete:
+      operationId: deleteRecipeIngredient
+      tags: [recipes]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: ingredientId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      responses:
+        "200":
+          description: Inventory
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/InventoryItem" }
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateInventoryRequest" }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryItem" }
+  /inventory/{id}:
+    put:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateInventoryRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryItem" }
+    delete:
+      operationId: deleteInventoryItem
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: force
+          in: query
+          required: false
+          schema: { type: boolean }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+        "409":
+          description: In use by recipes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryInUseError" }
+  /inventory/{id}/adjust:
+    post:
+      operationId: adjustInventory
+      tags: [inventory]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [change, reason]
+              properties:
+                change: { type: number }
+                reason: { type: string }
+      responses:
+        "200":
+          description: Adjusted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InventoryItem" }
+  /inventory/low-stock:
+    get:
+      operationId: listLowStock
+      tags: [inventory]
+      responses:
+        "200":
+          description: Low stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/InventoryItem" }
+
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateOrderRequest" }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderDetail" }
+  /orders/active:
+    get:
+      operationId: listActiveOrders
+      tags: [orders]
+      responses:
+        "200":
+          description: Active orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/OrderDetail" }
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderDetail" }
+  /orders/{id}/items:
+    patch:
+      operationId: patchOrderItems
+      tags: [orders]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add:
+                  type: array
+                  items: { $ref: "#/components/schemas/NewOrderItem" }
+                remove:
+                  type: array
+                  items: { type: integer }
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrderDetail" }
+
+  /kitchen/tickets:
+    get:
+      operationId: listKitchenTickets
+      tags: [kitchen]
+      responses:
+        "200":
+          description: Tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/KitchenTicket" }
+  /kitchen/tickets/{id}/status:
+    patch:
+      operationId: updateKitchenTicketStatus
+      tags: [kitchen]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, preparing, ready, delivered]
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KitchenTicket" }
+
+  /sales:
+    post:
+      operationId: createSale
+      tags: [sales]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSaleRequest" }
+      responses:
+        "200":
+          description: Sale created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sale" }
+    get:
+      operationId: listSales
+      tags: [sales]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Sales
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Sale" }
+  /sales/{id}:
+    get:
+      operationId: getSale
+      tags: [sales]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Sale
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SaleDetail" }
+
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+        - name: category
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Expense" }
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateExpenseRequest" }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Expense" }
+  /expenses/{id}:
+    put:
+      operationId: updateExpense
+      tags: [expenses]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateExpenseRequest" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Expense" }
+    delete:
+      operationId: deleteExpense
+      tags: [expenses]
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+
+  /analytics/dashboard:
+    get:
+      operationId: getDashboard
+      tags: [analytics]
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+  /analytics/sales:
+    get:
+      operationId: getSalesReport
+      tags: [analytics]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Sales report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SalesReport" }
+  /analytics/sales-trend:
+    get:
+      operationId: getSalesTrend
+      tags: [analytics]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Sales trend
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrendPoint" }
+  /analytics/products:
+    get:
+      operationId: getProductPerformance
+      tags: [analytics]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Product performance
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProductPerformance" }
+  /analytics/waiters:
+    get:
+      operationId: getWaiterPerformance
+      tags: [analytics]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Waiter performance
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WaiterPerformance" }
+  /analytics/inventory-movements:
+    get:
+      operationId: getInventoryMovements
+      tags: [analytics]
+      responses:
+        "200":
+          description: Movements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/InventoryMovement" }
+
+  /daily-close:
+    post:
+      operationId: createDailyClose
+      tags: [dailyClose]
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DailyClose" }
+  /daily-close/latest:
+    get:
+      operationId: getLatestDailyClose
+      tags: [dailyClose]
+      responses:
+        "200":
+          description: Latest
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DailyClose" }
+  /daily-close/preview:
+    get:
+      operationId: previewDailyClose
+      tags: [dailyClose]
+      responses:
+        "200":
+          description: Preview
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DailyClose" }
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+
+    Role:
+      type: string
+      enum: [ADMIN, WAITER, CASHIER]
+
+    LoginRequest:
+      type: object
+      required: [name, password]
+      properties:
+        name: { type: string }
+        password: { type: string }
+    LoginResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string }
+        user: { $ref: "#/components/schemas/User" }
+
+    User:
+      type: object
+      required: [id, name, role, active]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        active: { type: boolean }
+    CreateUserRequest:
+      type: object
+      required: [name, password, role]
+      properties:
+        name: { type: string }
+        password: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        active: { type: boolean }
+    UpdateUserRequest:
+      type: object
+      properties:
+        name: { type: string }
+        password: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        active: { type: boolean }
+
+    Area:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    RestaurantTable:
+      type: object
+      required: [id, areaId, areaName, number, status]
+      properties:
+        id: { type: integer }
+        areaId: { type: integer }
+        areaName: { type: string }
+        number: { type: integer }
+        status:
+          type: string
+          enum: [free, occupied, waiting_payment, closed]
+        openedAt: { type: string, format: date-time, nullable: true }
+        openedByName: { type: string, nullable: true }
+        currentTotal: { type: number }
+        currentOrderId: { type: integer, nullable: true }
+
+    TableDetail:
+      allOf:
+        - $ref: "#/components/schemas/RestaurantTable"
+        - type: object
+          properties:
+            order:
+              nullable: true
+              $ref: "#/components/schemas/OrderDetail"
+
+    Category:
+      type: object
+      required: [id, name, sortOrder]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        sortOrder: { type: integer }
+
+    Product:
+      type: object
+      required: [id, categoryId, name, price, active]
+      properties:
+        id: { type: integer }
+        categoryId: { type: integer }
+        categoryName: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        price: { type: number }
+        imageUrl: { type: string, nullable: true }
+        active: { type: boolean }
+    CreateProductRequest:
+      type: object
+      required: [categoryId, name, price]
+      properties:
+        categoryId: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        price: { type: number }
+        imageUrl: { type: string, nullable: true }
+        active: { type: boolean }
+
+    InventoryInUseError:
+      type: object
+      required: [error, usedIn]
+      properties:
+        error: { type: string }
+        usedIn:
+          type: array
+          items:
+            type: object
+            required: [recipeId, productId, productName]
+            properties:
+              recipeId: { type: integer }
+              productId: { type: integer }
+              productName: { type: string }
+    InventoryItem:
+      type: object
+      required: [id, name, unit, currentQuantity, minimumStock, cost]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        unit: { type: string, enum: [g, kg, ml, l, unit] }
+        currentQuantity: { type: number }
+        minimumStock: { type: number }
+        cost: { type: number }
+        supplier: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
+    CreateInventoryRequest:
+      type: object
+      required: [name, unit]
+      properties:
+        name: { type: string }
+        unit: { type: string, enum: [g, kg, ml, l, unit] }
+        currentQuantity: { type: number }
+        minimumStock: { type: number }
+        cost: { type: number }
+        supplier: { type: string, nullable: true }
+
+    Recipe:
+      type: object
+      required: [id, productId, productName]
+      properties:
+        id: { type: integer }
+        productId: { type: integer }
+        productName: { type: string }
+        notes: { type: string, nullable: true }
+        ingredientCount: { type: integer }
+        ingredients:
+          type: array
+          items: { $ref: "#/components/schemas/RecipeIngredient" }
+
+    RecipeIngredient:
+      type: object
+      required: [id, recipeId, inventoryItemId, quantity]
+      properties:
+        id: { type: integer }
+        recipeId: { type: integer }
+        inventoryItemId: { type: integer }
+        inventoryItemName: { type: string }
+        unit: { type: string }
+        quantity: { type: number }
+
+    NewOrderItem:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { type: integer }
+        quantity: { type: integer }
+        notes: { type: string, nullable: true }
+
+    CreateOrderRequest:
+      type: object
+      required: [tableId, items]
+      properties:
+        tableId: { type: integer }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/NewOrderItem" }
+
+    OrderItemDetail:
+      type: object
+      required: [id, productId, productName, quantity, unitPrice, lineTotal]
+      properties:
+        id: { type: integer }
+        productId: { type: integer }
+        productName: { type: string }
+        quantity: { type: integer }
+        unitPrice: { type: number }
+        notes: { type: string, nullable: true }
+        lineTotal: { type: number }
+
+    OrderDetail:
+      type: object
+      required: [id, tableId, waiterId, status, total, items, createdAt]
+      properties:
+        id: { type: integer }
+        tableId: { type: integer }
+        tableNumber: { type: integer }
+        areaName: { type: string }
+        waiterId: { type: integer }
+        waiterName: { type: string }
+        status: { type: string }
+        total: { type: number }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItemDetail" }
+        createdAt: { type: string, format: date-time }
+
+    KitchenTicket:
+      type: object
+      required: [id, orderId, status, createdAt]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        tableNumber: { type: integer }
+        areaName: { type: string }
+        waiterName: { type: string }
+        status: { type: string, enum: [pending, preparing, ready, delivered] }
+        createdAt: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/OrderItemDetail" }
+
+    CreateSaleRequest:
+      type: object
+      required: [orderId, payments]
+      properties:
+        orderId: { type: integer }
+        payments:
+          type: array
+          items:
+            type: object
+            required: [method, amount]
+            properties:
+              method: { type: string, enum: [cash, card, transfer] }
+              amount: { type: number }
+
+    Sale:
+      type: object
+      required: [id, orderId, tableId, total, createdAt]
+      properties:
+        id: { type: integer }
+        orderId: { type: integer }
+        tableId: { type: integer }
+        tableNumber: { type: integer }
+        cashierName: { type: string }
+        waiterName: { type: string, nullable: true }
+        subtotal: { type: number }
+        total: { type: number }
+        createdAt: { type: string, format: date-time }
+        paymentMethods:
+          type: array
+          items: { type: string }
+
+    SaleDetail:
+      allOf:
+        - $ref: "#/components/schemas/Sale"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  productName: { type: string }
+                  quantity: { type: integer }
+                  unitPrice: { type: number }
+                  lineTotal: { type: number }
+            payments:
+              type: array
+              items:
+                type: object
+                properties:
+                  method: { type: string }
+                  amount: { type: number }
+
+    SalesReport:
+      type: object
+      required: [from, to, totalSales, transactionCount, sales]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        totalSales: { type: number }
+        transactionCount: { type: integer }
+        averageTicket: { type: number }
+        sales:
+          type: array
+          items: { $ref: "#/components/schemas/Sale" }
+
+    Expense:
+      type: object
+      required: [id, name, amount, category, expenseDate, paymentMethod]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        amount: { type: number }
+        category: { type: string }
+        supplier: { type: string, nullable: true }
+        expenseDate: { type: string, format: date }
+        invoiceNumber: { type: string, nullable: true }
+        paymentMethod: { type: string }
+        createdByName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    CreateExpenseRequest:
+      type: object
+      required: [name, amount, category, expenseDate]
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        amount: { type: number }
+        category: { type: string }
+        supplier: { type: string, nullable: true }
+        expenseDate: { type: string, format: date }
+        invoiceNumber: { type: string, nullable: true }
+        paymentMethod: { type: string, enum: [cash, card, transfer] }
+
+    InventoryMovement:
+      type: object
+      required: [id, inventoryItemId, change, reason, createdAt]
+      properties:
+        id: { type: integer }
+        inventoryItemId: { type: integer }
+        inventoryItemName: { type: string }
+        change: { type: number }
+        reason: { type: string }
+        userName: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    TrendPoint:
+      type: object
+      required: [date, sales, expenses]
+      properties:
+        date: { type: string }
+        sales: { type: number }
+        expenses: { type: number }
+
+    ProductPerformance:
+      type: object
+      required: [productId, productName, quantity, revenue]
+      properties:
+        productId: { type: integer }
+        productName: { type: string }
+        quantity: { type: integer }
+        revenue: { type: number }
+
+    WaiterPerformance:
+      type: object
+      required: [waiterId, waiterName, salesCount, total]
+      properties:
+        waiterId: { type: integer }
+        waiterName: { type: string }
+        salesCount: { type: integer }
+        total: { type: number }
+
+    PaymentBreakdown:
+      type: object
+      required: [method, amount, count]
+      properties:
+        method: { type: string }
+        amount: { type: number }
+        count: { type: integer }
+
+    Dashboard:
+      type: object
+      required:
+        [
+          dailySales,
+          weeklySales,
+          monthlySales,
+          dailyExpenses,
+          monthlyExpenses,
+          netProfit,
+          averageTicket,
+          transactionsToday,
+          topProducts,
+          paymentBreakdown,
+          salesTrend,
+          lowStock,
+          recentSales,
+        ]
+      properties:
+        dailySales: { type: number }
+        weeklySales: { type: number }
+        monthlySales: { type: number }
+        dailyExpenses: { type: number }
+        monthlyExpenses: { type: number }
+        netProfit: { type: number }
+        averageTicket: { type: number }
+        transactionsToday: { type: integer }
+        topProducts:
+          type: array
+          items: { $ref: "#/components/schemas/ProductPerformance" }
+        paymentBreakdown:
+          type: array
+          items: { $ref: "#/components/schemas/PaymentBreakdown" }
+        salesTrend:
+          type: array
+          items: { $ref: "#/components/schemas/TrendPoint" }
+        lowStock:
+          type: array
+          items: { $ref: "#/components/schemas/InventoryItem" }
+        recentSales:
+          type: array
+          items: { $ref: "#/components/schemas/Sale" }
+
+    DailyClose:
+      type: object
+      required:
+        [closeDate, totalSales, totalExpenses, netProfit, transactionCount]
+      properties:
+        id: { type: integer, nullable: true }
+        closeDate: { type: string, format: date }
+        totalSales: { type: number }
+        totalExpenses: { type: number }
+        netProfit: { type: number }
+        transactionCount: { type: integer }
+        finalized: { type: boolean }
+        paymentBreakdown:
+          type: array
+          items: { $ref: "#/components/schemas/PaymentBreakdown" }
+        topProducts:
+          type: array
+          items: { $ref: "#/components/schemas/ProductPerformance" }
+        lowStock:
+          type: array
+          items: { $ref: "#/components/schemas/InventoryItem" }
+        createdAt: { type: string, format: date-time, nullable: true }

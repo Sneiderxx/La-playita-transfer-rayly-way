@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "lg1JVF2z5w3issvTEkYMN"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "la playita waiter icon"
