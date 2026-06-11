@@ -295,14 +295,12 @@ export default function TableOrder() {
           <DialogHeader><DialogTitle>{variantModal?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">Selecciona una opción:</p>
-            {/* Sin variantes — solo precio normal */}
-            {(!variantModal?.variants || variantModal.variants.length === 0) && (
-              <button className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
-                onClick={() => variantModal && addToCart(variantModal, Number(variantModal.price))}>
-                <span className="font-medium">Precio normal</span>
-                <span className="font-bold text-primary">{formatCurrency(Number(variantModal?.price ?? 0))}</span>
-              </button>
-            )}
+            {/* Precio normal — siempre visible */}
+            < button className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+               onClick={() => variantModal && addToCart(variantModal, Number(variantModal.price))}>
+              <span className="font-medium">Precio normal</span>
+              <span className="font-bold text-primary">{formatCurrency(Number(variantModal?.price ?? 0))}</span>
+            </button>
             {/* Precio de oferta */}
             {variantModal?.salePrice && (
               <button className="w-full flex justify-between items-center p-4 rounded-lg border border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
