@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { 
   useGetTable, useListProducts, useListCategories,
   useCreateOrder, usePatchOrderItems, useUpdateTableStatus,
@@ -14,21 +14,20 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Plus, Minus, Trash2, Send, CreditCard, DoorOpen, Ban, ShoppingCart, UtensilsCrossed, Tag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Plus, Minus, Trash2, Send, CreditCard, DoorOpen, Ban, ShoppingCart, UtensilsCrossed, Tag } from "lucide-react";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
 
-interface CartItem extends Product {
+type ProductWithExtras = Product & {
+  salePrice?: number | null;
+  variants?: Array<{ name: string; price: number }> | null;
+};
+
+interface CartItem extends ProductWithExtras {
   cartId: string;
   cartQuantity: number;
   selectedPrice: number;
   variantName?: string;
-}
-
-interface ProductVariant {
-  name: string;
-  price: number;
 }
 
 export default function TableOrder() {
@@ -63,12 +62,12 @@ export default function TableOrder() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
-  const [variantModal, setVariantModal] = useState<Product | null>(null);
+  const [variantModal, setVariantModal] = useState<ProductWithExtras | null>(null);
 
-  const existingOrder = table?.order;
+  const existingOrder = table?.order ?? null;
   const isPendingPayment = table?.status === "waiting_payment";
 
-  const addToCart = (product: Product, price?: number, variantName?: string) => {
+  const addToCart = (product: ProductWithExtras, price?: number, variantName?: string) => {
     if (isPendingPayment) return;
     const selectedPrice = price ?? Number(product.price);
     setCart(prev => [...prev, { ...product, cartId: Math.random().toString(), cartQuantity: 1, selectedPrice, variantName }]);
@@ -76,10 +75,11 @@ export default function TableOrder() {
     setVariantModal(null);
   };
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: ProductWithExtras) => {
     if (isPendingPayment) return;
-    const variants = product.variants as ProductVariant[] | null;
-    if (variants && variants.length > 0) {
+    const hasVariants = product.variants && product.variants.length > 0;
+    const hasSalePrice = !!product.salePrice;
+    if (hasVariants || hasSalePrice) {
       setVariantModal(product);
     } else {
       addToCart(product);
@@ -112,14 +112,14 @@ export default function TableOrder() {
     });
   };
 
-  const filteredProducts = products.filter(p => {
+  const filteredProducts = (products as ProductWithExtras[]).filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = activeCategory === "all" || p.categoryId.toString() === activeCategory;
     return matchSearch && matchCat && p.active;
   });
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.selectedPrice * item.cartQuantity), 0);
-  const existingTotal = existingOrder?.total || 0;
+  const existingTotal = Number(existingOrder?.total ?? 0);
   const totalItems = cart.reduce((s, i) => s + i.cartQuantity, 0);
 
   const statusLabel: Record<string, string> = {
@@ -128,7 +128,6 @@ export default function TableOrder() {
 
   if (!table) return <div className="p-8">Cargando...</div>;
 
-  // ── Panel de productos ──
   const ProductsPanel = () => (
     <div className="flex flex-col h-full">
       <div className="p-3 space-y-2 border-b">
@@ -136,7 +135,7 @@ export default function TableOrder() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           <Button variant={activeCategory === "all" ? "default" : "secondary"} size="sm" className="rounded-full shrink-0 text-xs h-7" onClick={() => setActiveCategory("all")}>Todos</Button>
           {categories.map(cat => (
             <Button key={cat.id} variant={activeCategory === cat.id.toString() ? "default" : "secondary"} size="sm" className="rounded-full shrink-0 text-xs h-7" onClick={() => setActiveCategory(cat.id.toString())}>{cat.name}</Button>
@@ -153,13 +152,9 @@ export default function TableOrder() {
               <CardContent className="p-2">
                 <div className="font-medium text-xs leading-tight line-clamp-2">{product.name}</div>
                 <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                  {(product as any).salePrice && (
-                    <span className="bg-orange-500 text-white text-xs px-1 rounded font-bold">OFERTA</span>
-                  )}
+                  {product.salePrice && <span className="bg-orange-500 text-white text-xs px-1 rounded font-bold">OFERTA</span>}
                   <span className="text-primary font-bold text-sm">{formatCurrency(Number(product.price))}</span>
-                  {(product as any).salePrice && (
-                    <span className="text-orange-400 font-bold text-sm">{formatCurrency(Number((product as any).salePrice))}</span>
-                  )}
+                  {product.salePrice && <span className="text-orange-400 font-bold text-sm">{formatCurrency(Number(product.salePrice))}</span>}
                 </div>
               </CardContent>
             </Card>
@@ -169,7 +164,6 @@ export default function TableOrder() {
     </div>
   );
 
-  // ── Panel de orden ──
   const OrderPanel = () => (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b">
@@ -183,7 +177,7 @@ export default function TableOrder() {
       </div>
 
       <ScrollArea className="flex-1 p-3">
-        {existingOrder?.items?.length > 0 && (
+        {existingOrder && (existingOrder.items?.length ?? 0) > 0 && (
           <div className="mb-4">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Orden enviada</span>
@@ -192,21 +186,22 @@ export default function TableOrder() {
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-destructive h-6 text-xs px-2"><Ban className="w-3 h-3 mr-1" />Anular</Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>¿Anular esta orden?</AlertDialogTitle><AlertDialogDescription>Esta acción liberará la mesa.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogContent>
+                    <AlertDialogHeader><AlertDialogTitle>¿Anular esta orden?</AlertDialogTitle><AlertDialogDescription>Esta acción liberará la mesa.</AlertDialogDescription></AlertDialogHeader>
                     <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive" onClick={() => voidOrder.mutate(existingOrder.id)}>Anular</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               )}
             </div>
             <div className="space-y-1 bg-muted/20 rounded-lg p-2">
-              {existingOrder.items.map((item: { id: number; productName: string; quantity: number; unitPrice: number }) => (
+              {(existingOrder.items ?? []).map((item: { id: number; productName: string; quantity: number; unitPrice: number }) => (
                 <div key={item.id} className="flex justify-between text-sm py-1">
                   <span>{item.quantity}× {item.productName}</span>
                   <span className="font-medium">{formatCurrency(Number(item.unitPrice) * item.quantity)}</span>
                 </div>
               ))}
               <div className="border-t pt-1 flex justify-between font-semibold text-sm">
-                <span>Subtotal</span><span>{formatCurrency(Number(existingTotal))}</span>
+                <span>Subtotal</span><span>{formatCurrency(existingTotal)}</span>
               </div>
             </div>
           </div>
@@ -244,10 +239,10 @@ export default function TableOrder() {
       </ScrollArea>
 
       <div className="p-3 border-t space-y-2 bg-muted/5">
-        {(Number(existingTotal) + cartTotal) > 0 && (
+        {(existingTotal + cartTotal) > 0 && (
           <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
-            <span className="text-primary">{formatCurrency(Number(existingTotal) + cartTotal)}</span>
+            <span className="text-primary">{formatCurrency(existingTotal + cartTotal)}</span>
           </div>
         )}
         {cart.length > 0 && (
@@ -271,11 +266,19 @@ export default function TableOrder() {
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>¿Liberar mesa #{table.number}?</AlertDialogTitle>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Liberar mesa #{table.number}?</AlertDialogTitle>
                 <AlertDialogDescription>{existingOrder ? "Anulará la orden activa y liberará la mesa." : "La mesa quedará libre."}</AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => { existingOrder && isAdmin ? voidOrder.mutate(existingOrder.id, { onSuccess: () => setLocation("/tables") }) : freeTable.mutate(); }}>Liberar</AlertDialogAction>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                  if (existingOrder && isAdmin) {
+                    voidOrder.mutate(existingOrder.id, { onSuccess: () => setLocation("/tables") });
+                  } else {
+                    freeTable.mutate();
+                  }
+                }}>Liberar</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -286,49 +289,33 @@ export default function TableOrder() {
 
   return (
     <>
-      {/* ── DESKTOP: dos paneles lado a lado ── */}
-      <div className="hidden md:flex h-[calc(100vh-112px)] gap-4 overflow-hidden">
-        <div className="flex-1 bg-card rounded-xl border shadow-sm overflow-hidden"><ProductsPanel /></div>
-        <div className="w-[360px] bg-card rounded-xl border shadow-sm overflow-hidden"><OrderPanel /></div>
-      </div>
-
-      {/* ── Modal variantes (ej: Cubetazo) ── */}
+      {/* Modal variantes/ofertas */}
       <Dialog open={!!variantModal} onOpenChange={(o) => !o && setVariantModal(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{variantModal?.name}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{variantModal?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">Selecciona una opción:</p>
-            {/* Precio normal */}
-            <button
-              className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
-              onClick={() => variantModal && addToCart(variantModal, Number(variantModal.price))}
-            >
-              <span className="font-medium">{variantModal?.name} — Precio normal</span>
-              <span className="font-bold text-primary">{formatCurrency(Number(variantModal?.price ?? 0))}</span>
-            </button>
-            {/* Precio de oferta si existe */}
-            {variantModal && (variantModal as any).salePrice && (
-              <button
-                className="w-full flex justify-between items-center p-4 rounded-lg border border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
-                onClick={() => variantModal && addToCart(variantModal, Number((variantModal as any).salePrice), "Oferta")}
-              >
-                <span className="font-medium flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-orange-500" />
-                  {variantModal?.name} — Oferta
-                </span>
-                <span className="font-bold text-orange-500">{formatCurrency(Number((variantModal as any).salePrice))}</span>
+            {/* Sin variantes — solo precio normal */}
+            {(!variantModal?.variants || variantModal.variants.length === 0) && (
+              <button className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                onClick={() => variantModal && addToCart(variantModal, Number(variantModal.price))}>
+                <span className="font-medium">Precio normal</span>
+                <span className="font-bold text-primary">{formatCurrency(Number(variantModal?.price ?? 0))}</span>
               </button>
             )}
-            {/* Variantes personalizadas (ej: x5, x6) */}
-            {variantModal && (variantModal as any).variants && ((variantModal as any).variants as ProductVariant[]).map((v: ProductVariant, i: number) => (
-              <button
-                key={i}
-                className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
-                onClick={() => variantModal && addToCart(variantModal, v.price, v.name)}
-              >
-                <span className="font-medium">{variantModal?.name} — {v.name}</span>
+            {/* Precio de oferta */}
+            {variantModal?.salePrice && (
+              <button className="w-full flex justify-between items-center p-4 rounded-lg border border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
+                onClick={() => variantModal && addToCart(variantModal, Number(variantModal.salePrice), "Oferta")}>
+                <span className="font-medium flex items-center gap-2"><Tag className="w-4 h-4 text-orange-500" />Precio oferta</span>
+                <span className="font-bold text-orange-500">{formatCurrency(Number(variantModal.salePrice))}</span>
+              </button>
+            )}
+            {/* Variantes personalizadas */}
+            {variantModal?.variants?.map((v, i) => (
+              <button key={i} className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                onClick={() => variantModal && addToCart(variantModal, v.price, v.name)}>
+                <span className="font-medium">{v.name}</span>
                 <span className="font-bold text-primary">{formatCurrency(v.price)}</span>
               </button>
             ))}
@@ -336,25 +323,25 @@ export default function TableOrder() {
         </DialogContent>
       </Dialog>
 
-      {/* ── MÓVIL: tabs Menú / Orden ── */}
+      {/* DESKTOP */}
+      <div className="hidden md:flex h-[calc(100vh-112px)] gap-4 overflow-hidden">
+        <div className="flex-1 bg-card rounded-xl border shadow-sm overflow-hidden"><ProductsPanel /></div>
+        <div className="w-[360px] bg-card rounded-xl border shadow-sm overflow-hidden"><OrderPanel /></div>
+      </div>
+
+      {/* MÓVIL */}
       <div className="flex flex-col h-[calc(100vh-112px)] md:hidden">
-        {/* Tab switcher */}
         <div className="flex border-b bg-card shrink-0">
-          <button
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === "menu" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
-            onClick={() => setMobileTab("menu")}
-          >
+          <button className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === "menu" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
+            onClick={() => setMobileTab("menu")}>
             <UtensilsCrossed className="w-4 h-4" /> Menú
           </button>
-          <button
-            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === "order" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
-            onClick={() => setMobileTab("order")}
-          >
+          <button className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === "order" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
+            onClick={() => setMobileTab("order")}>
             <ShoppingCart className="w-4 h-4" /> Orden
             {totalItems > 0 && <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>}
           </button>
         </div>
-
         <div className="flex-1 bg-card overflow-hidden">
           {mobileTab === "menu" ? <ProductsPanel /> : <OrderPanel />}
         </div>
