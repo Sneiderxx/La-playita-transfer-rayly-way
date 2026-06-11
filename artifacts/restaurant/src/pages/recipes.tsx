@@ -133,9 +133,10 @@ export default function Recipes() {
         active: selectedProduct.active,
       }
     }, {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         toast.success("Precios actualizados");
         setEditPriceOpen(false);
+        setSelectedProduct(data);
         queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
       },
       onError: (e: Error) => toast.error(e.message),
