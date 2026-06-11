@@ -117,6 +117,8 @@ export const products = pgTable(
     name: varchar("name", { length: 120 }).notNull(),
     description: text("description"),
     price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+    salePrice: numeric("sale_price", { precision: 10, scale: 2 }),
+    variants: jsonb("variants"),
     imageUrl: text("image_url"),
     active: boolean("active").notNull().default(true),
   },
