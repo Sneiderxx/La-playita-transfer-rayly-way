@@ -8,7 +8,7 @@ import "./index.css";
 const queryClient = new QueryClient();
 
 // Configurar URL del API
-setBaseUrl(import.meta.env.VITE_API_URL ?? "http://localhost:8080");
+setBaseUrl("https://la-playita-transfer-rayly-way-production.up.railway.app");
 
 // Force dark mode
 document.documentElement.classList.add("dark");
