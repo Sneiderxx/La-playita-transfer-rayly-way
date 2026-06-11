@@ -10,6 +10,10 @@ const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
   : ["http://localhost:5173", "http://localhost:4173"];
 
+
+console.log("CORS_ORIGIN =", process.env.CORS_ORIGIN);
+console.log("allowedOrigins =", allowedOrigins);  
+
 app.use(
   pinoHttp({
     logger,
