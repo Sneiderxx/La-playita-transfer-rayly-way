@@ -81,8 +81,6 @@ productsRouter.post(
         name: String(name),
         description: description ?? null,
         price: String(price),
-        salePrice: sale_price != null ? String(sale_price) : null,
-        variants: variants ?? null,
         imageUrl: imageUrl ?? null,
         active: active ?? true,
       })
@@ -95,13 +93,15 @@ productsRouter.put(
   requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const { categoryId, name, description, price, imageUrl, active } =
+    const { categoryId, name, description, price, sale_price, variants, imageUrl, active } =
       req.body ?? {};
     const updates: Partial<typeof products.$inferInsert> = {};
     if (categoryId !== undefined) updates.categoryId = Number(categoryId);
     if (name !== undefined) updates.name = String(name);
     if (description !== undefined) updates.description = description;
     if (price !== undefined) updates.price = String(price);
+    if (sale_price !== undefined) updates.salePrice = sale_price !== null ? String(sale_price) : null;
+    if (variants !== undefined) updates.variants = variants;
     if (imageUrl !== undefined) updates.imageUrl = imageUrl;
     if (active !== undefined) updates.active = Boolean(active);
     const [updated] = await db
@@ -110,7 +110,7 @@ productsRouter.put(
       .where(eq(products.id, id))
       .returning();
     if (!updated) return res.status(404).json({ error: "Not found" });
-    res.json({ ...updated, price: Number(updated.price) });
+    res.json({ ...updated, price: Number(updated.price), salePrice: updated.salePrice ? Number(updated.salePrice) : null, variants: updated.variants ?? null });
   }),
 );
 productsRouter.delete(

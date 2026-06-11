@@ -52019,10 +52019,12 @@ async function fetchProducts() {
     name: products.name,
     description: products.description,
     price: products.price,
+    salePrice: products.salePrice,
+    variants: products.variants,
     imageUrl: products.imageUrl,
     active: products.active
   }).from(products).leftJoin(categories, eq(categories.id, products.categoryId)).orderBy(asc(products.name));
-  return rows.map((p) => ({ ...p, price: Number(p.price), categoryName: p.categoryName ?? "" }));
+  return rows.map((p) => ({ ...p, price: Number(p.price), salePrice: p.salePrice ? Number(p.salePrice) : null, variants: p.variants ?? null, categoryName: p.categoryName ?? "" }));
 }
 productsRouter.get(
   "/",
@@ -52051,17 +52053,19 @@ productsRouter.put(
   requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const { categoryId, name, description, price, imageUrl, active } = req.body ?? {};
+    const { categoryId, name, description, price, sale_price, variants, imageUrl, active } = req.body ?? {};
     const updates = {};
     if (categoryId !== void 0) updates.categoryId = Number(categoryId);
     if (name !== void 0) updates.name = String(name);
     if (description !== void 0) updates.description = description;
     if (price !== void 0) updates.price = String(price);
+    if (sale_price !== void 0) updates.salePrice = sale_price !== null ? String(sale_price) : null;
+    if (variants !== void 0) updates.variants = variants;
     if (imageUrl !== void 0) updates.imageUrl = imageUrl;
     if (active !== void 0) updates.active = Boolean(active);
     const [updated] = await db.update(products).set(updates).where(eq(products.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Not found" });
-    res.json({ ...updated, price: Number(updated.price) });
+    res.json({ ...updated, price: Number(updated.price), salePrice: updated.salePrice ? Number(updated.salePrice) : null, variants: updated.variants ?? null });
   })
 );
 productsRouter.delete(
@@ -53698,27 +53702,31 @@ var logger = (0, import_pino.default)({
 
 // src/app.ts
 var app = (0, import_express15.default)();
-var allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()) : ["http://localhost:5173", "http://localhost:4173"];
 app.use(
   (0, import_pino_http.default)({
     logger,
     serializers: {
       req(req) {
-        return { id: req.id, method: req.method, url: req.url?.split("?")[0] };
+        return {
+          id: req.id,
+          method: req.method,
+          url: req.url?.split("?")[0]
+        };
       },
       res(res) {
-        return { statusCode: res.statusCode };
+        return {
+          statusCode: res.statusCode
+        };
       }
     }
   })
 );
-app.use((0, import_cors.default)({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origen no permitido: ${origin}`));
-  },
-  credentials: true
-}));
+app.use(
+  (0, import_cors.default)({
+    origin: true,
+    credentials: true
+  })
+);
 app.use(import_express15.default.json());
 app.use(import_express15.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
