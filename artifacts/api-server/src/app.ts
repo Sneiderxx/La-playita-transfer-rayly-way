@@ -25,10 +25,7 @@ app.use(
 );
 
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origen no permitido: ${origin}`));
-  },
+  origin: true,
   credentials: true,
 }));
 
