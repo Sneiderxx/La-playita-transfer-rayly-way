@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Trash2, Plus, Save, ChefHat, PackagePlus } from "lucide-react";
+import { Trash2, Plus, Save, ChefHat, PackagePlus, Pencil, Tag } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -50,6 +50,11 @@ export default function Recipes() {
   const deleteRecipe = useDeleteRecipe();
   const replaceIngredients = useReplaceRecipeIngredients();
   const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const [editPriceOpen, setEditPriceOpen] = useState(false);
+  const [editPrice, setEditPrice] = useState("");
+  const [editSalePrice, setEditSalePrice] = useState("");
+  const [editVariants, setEditVariants] = useState<Array<{name: string; price: string}>>([]);
 
   const [draftIngredients, setDraftIngredients] = useState<Array<{ inventoryItemId: number, quantity: number }>>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -97,6 +102,37 @@ export default function Recipes() {
         setIsEditing(false);
         queryClient.invalidateQueries({ queryKey: getListRecipeIngredientsQueryKey(recipe.id) });
       }
+    });
+  };
+
+  const handleOpenEditPrice = (product: Product) => {
+    setSelectedProduct(product);
+    setEditPrice(String(product.price));
+    setEditSalePrice((product as any).salePrice ? String((product as any).salePrice) : "");
+    const variants = (product as any).variants as Array<{name: string; price: number}> | null;
+    setEditVariants(variants ? variants.map(v => ({ name: v.name, price: String(v.price) })) : []);
+    setEditPriceOpen(true);
+  };
+
+  const handleSavePrice = () => {
+    if (!selectedProduct) return;
+    updateProduct.mutate({
+      id: selectedProduct.id,
+      data: {
+        name: selectedProduct.name,
+        categoryId: selectedProduct.categoryId,
+        price: Number(editPrice),
+        salePrice: editSalePrice ? Number(editSalePrice) : null,
+        variants: editVariants.length > 0 ? editVariants.map(v => ({ name: v.name, price: Number(v.price) })) : null,
+        active: selectedProduct.active,
+      }
+    }, {
+      onSuccess: () => {
+        toast.success("Precios actualizados");
+        setEditPriceOpen(false);
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      },
+      onError: (e) => toast.error(e.message),
     });
   };
 
@@ -171,19 +207,21 @@ export default function Recipes() {
             {products.map(product => {
               const hasRecipe = recipes.some(r => r.productId === product.id);
               return (
-                <div
-                  key={product.id}
-                  onClick={() => handleSelectProduct(product)}
-                  className={`p-3 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${
-                    selectedProduct?.id === product.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  }`}
-                >
-                  <div>
+                <div key={product.id} className={`p-2 rounded-lg flex items-center gap-2 transition-colors ${selectedProduct?.id === product.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                  <div className="flex-1 cursor-pointer" onClick={() => handleSelectProduct(product)}>
                     <div className="font-medium text-sm">{product.name}</div>
-                    <div className={`text-xs ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    <div className={`text-xs flex items-center gap-1 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                       {formatCurrency(Number(product.price))}
+                      {(product as any).salePrice && <span className="bg-orange-500 text-white text-xs px-1 rounded">OFERTA</span>}
                     </div>
                   </div>
+                  <button
+                    className={`p-1 rounded hover:bg-black/10 shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    onClick={(e) => { e.stopPropagation(); handleOpenEditPrice(product); }}
+                    title="Editar precios"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
                   {hasRecipe && <ChefHat className={`w-4 h-4 flex-shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`} />}
                 </div>
               );
@@ -355,6 +393,61 @@ export default function Recipes() {
               <Button variant="outline" className="flex-1" onClick={() => setNewProductOpen(false)}>Cancelar</Button>
               <Button className="flex-1" onClick={handleCreateProduct} disabled={createProduct.isPending || !newName || !newPrice || !newCategoryId}>
                 {createProduct.isPending ? "Creando..." : "Crear y agregar receta"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    {/* Modal edición de precios y variantes */}
+      <Dialog open={editPriceOpen} onOpenChange={setEditPriceOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Precios: {selectedProduct?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Precio normal (Q)</Label>
+                <Input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1"><Tag className="w-3 h-3 text-orange-500" />Precio oferta (Q)</Label>
+                <Input type="number" placeholder="Sin oferta" value={editSalePrice} onChange={e => setEditSalePrice(e.target.value)} />
+                {editSalePrice && <p className="text-xs text-orange-500">El mesero podrá elegir precio normal u oferta</p>}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Variantes (ej: Cubetazo x5, x6)</Label>
+                <Button variant="outline" size="sm" onClick={() => setEditVariants([...editVariants, { name: "", price: "" }])}>
+                  <Plus className="w-3 h-3 mr-1" /> Agregar
+                </Button>
+              </div>
+              {editVariants.length === 0 && (
+                <p className="text-xs text-muted-foreground">Sin variantes — al agregar, el mesero verá opciones al seleccionar el producto.</p>
+              )}
+              {editVariants.map((v, i) => (
+                <div key={i} className="flex gap-2 items-end">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs">Nombre</Label>
+                    <Input placeholder="ej: x5 cervezas" value={v.name} onChange={e => { const n = [...editVariants]; n[i].name = e.target.value; setEditVariants(n); }} />
+                  </div>
+                  <div className="w-28 space-y-1">
+                    <Label className="text-xs">Precio (Q)</Label>
+                    <Input type="number" value={v.price} onChange={e => { const n = [...editVariants]; n[i].price = e.target.value; setEditVariants(n); }} />
+                  </div>
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setEditVariants(editVariants.filter((_, idx) => idx !== i))}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditPriceOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSavePrice} disabled={updateProduct.isPending}>
+                {updateProduct.isPending ? "Guardando..." : "Guardar Precios"}
               </Button>
             </div>
           </div>

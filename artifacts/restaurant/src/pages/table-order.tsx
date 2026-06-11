@@ -14,13 +14,21 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Plus, Minus, Trash2, Send, CreditCard, DoorOpen, Ban, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { Search, Plus, Minus, Trash2, Send, CreditCard, DoorOpen, Ban, ShoppingCart, UtensilsCrossed, Tag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 
 interface CartItem extends Product {
   cartId: string;
   cartQuantity: number;
+  selectedPrice: number;
+  variantName?: string;
+}
+
+interface ProductVariant {
+  name: string;
+  price: number;
 }
 
 export default function TableOrder() {
@@ -55,14 +63,27 @@ export default function TableOrder() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
+  const [variantModal, setVariantModal] = useState<Product | null>(null);
 
   const existingOrder = table?.order;
   const isPendingPayment = table?.status === "waiting_payment";
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, price?: number, variantName?: string) => {
     if (isPendingPayment) return;
-    setCart(prev => [...prev, { ...product, cartId: Math.random().toString(), cartQuantity: 1 }]);
+    const selectedPrice = price ?? Number(product.price);
+    setCart(prev => [...prev, { ...product, cartId: Math.random().toString(), cartQuantity: 1, selectedPrice, variantName }]);
     setMobileTab("order");
+    setVariantModal(null);
+  };
+
+  const handleProductClick = (product: Product) => {
+    if (isPendingPayment) return;
+    const variants = product.variants as ProductVariant[] | null;
+    if (variants && variants.length > 0) {
+      setVariantModal(product);
+    } else {
+      addToCart(product);
+    }
   };
 
   const updateQuantity = (cartId: string, delta: number) => {
@@ -73,7 +94,7 @@ export default function TableOrder() {
 
   const handleSendToKitchen = () => {
     if (cart.length === 0) return;
-    const items: NewOrderItem[] = cart.map(item => ({ productId: item.id, quantity: item.cartQuantity }));
+    const items: NewOrderItem[] = cart.map(item => ({ productId: item.id, quantity: item.cartQuantity, unitPrice: item.selectedPrice }));
     if (existingOrder) {
       patchOrder.mutate({ id: existingOrder.id, data: { add: items } }, {
         onSuccess: () => { toast.success("Enviado a cocina"); setCart([]); setMobileTab("order"); queryClient.invalidateQueries({ queryKey: getGetTableQueryKey(tableId) }); }
@@ -97,7 +118,7 @@ export default function TableOrder() {
     return matchSearch && matchCat && p.active;
   });
 
-  const cartTotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.cartQuantity), 0);
+  const cartTotal = cart.reduce((sum, item) => sum + (item.selectedPrice * item.cartQuantity), 0);
   const existingTotal = existingOrder?.total || 0;
   const totalItems = cart.reduce((s, i) => s + i.cartQuantity, 0);
 
@@ -125,13 +146,21 @@ export default function TableOrder() {
       <ScrollArea className="flex-1">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3">
           {filteredProducts.map(product => (
-            <Card key={product.id} className={`cursor-pointer hover:border-primary active:scale-95 transition-all ${isPendingPayment ? "opacity-50 pointer-events-none" : ""}`} onClick={() => addToCart(product)}>
+            <Card key={product.id} className={`cursor-pointer hover:border-primary active:scale-95 transition-all ${isPendingPayment ? "opacity-50 pointer-events-none" : ""}`} onClick={() => handleProductClick(product)}>
               <div className="h-14 bg-muted/50 flex items-center justify-center rounded-t-lg">
                 <span className="text-2xl font-bold text-muted-foreground">{product.name.charAt(0)}</span>
               </div>
               <CardContent className="p-2">
                 <div className="font-medium text-xs leading-tight line-clamp-2">{product.name}</div>
-                <div className="text-primary font-bold text-sm mt-0.5">{formatCurrency(Number(product.price))}</div>
+                <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                  {(product as any).salePrice && (
+                    <span className="bg-orange-500 text-white text-xs px-1 rounded font-bold">OFERTA</span>
+                  )}
+                  <span className="text-primary font-bold text-sm">{formatCurrency(Number(product.price))}</span>
+                  {(product as any).salePrice && (
+                    <span className="text-orange-400 font-bold text-sm">{formatCurrency(Number((product as any).salePrice))}</span>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -190,7 +219,7 @@ export default function TableOrder() {
               {cart.map(item => (
                 <div key={item.cartId} className="bg-muted/30 rounded-lg p-2.5">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="font-medium text-sm flex-1 mr-2">{item.name}</span>
+                    <span className="font-medium text-sm flex-1 mr-2">{item.name}{item.variantName ? ` (${item.variantName})` : ""}</span>
                     <button onClick={() => removeFromCart(item.cartId)} className="text-destructive p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="flex items-center justify-between">
@@ -199,7 +228,7 @@ export default function TableOrder() {
                       <span className="w-6 text-center font-bold text-sm">{item.cartQuantity}</span>
                       <button className="w-7 h-7 rounded-full border flex items-center justify-center" onClick={() => updateQuantity(item.cartId, 1)}><Plus className="w-3 h-3" /></button>
                     </div>
-                    <span className="font-semibold text-sm">{formatCurrency(Number(item.price) * item.cartQuantity)}</span>
+                    <span className="font-semibold text-sm">{formatCurrency(item.selectedPrice * item.cartQuantity)}</span>
                   </div>
                 </div>
               ))}
@@ -262,6 +291,50 @@ export default function TableOrder() {
         <div className="flex-1 bg-card rounded-xl border shadow-sm overflow-hidden"><ProductsPanel /></div>
         <div className="w-[360px] bg-card rounded-xl border shadow-sm overflow-hidden"><OrderPanel /></div>
       </div>
+
+      {/* ── Modal variantes (ej: Cubetazo) ── */}
+      <Dialog open={!!variantModal} onOpenChange={(o) => !o && setVariantModal(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{variantModal?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Selecciona una opción:</p>
+            {/* Precio normal */}
+            <button
+              className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+              onClick={() => variantModal && addToCart(variantModal, Number(variantModal.price))}
+            >
+              <span className="font-medium">{variantModal?.name} — Precio normal</span>
+              <span className="font-bold text-primary">{formatCurrency(Number(variantModal?.price ?? 0))}</span>
+            </button>
+            {/* Precio de oferta si existe */}
+            {variantModal && (variantModal as any).salePrice && (
+              <button
+                className="w-full flex justify-between items-center p-4 rounded-lg border border-orange-500/30 hover:border-orange-500 hover:bg-orange-500/5 transition-colors"
+                onClick={() => variantModal && addToCart(variantModal, Number((variantModal as any).salePrice), "Oferta")}
+              >
+                <span className="font-medium flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-orange-500" />
+                  {variantModal?.name} — Oferta
+                </span>
+                <span className="font-bold text-orange-500">{formatCurrency(Number((variantModal as any).salePrice))}</span>
+              </button>
+            )}
+            {/* Variantes personalizadas (ej: x5, x6) */}
+            {variantModal && (variantModal as any).variants && ((variantModal as any).variants as ProductVariant[]).map((v: ProductVariant, i: number) => (
+              <button
+                key={i}
+                className="w-full flex justify-between items-center p-4 rounded-lg border hover:border-primary hover:bg-primary/5 transition-colors"
+                onClick={() => variantModal && addToCart(variantModal, v.price, v.name)}
+              >
+                <span className="font-medium">{variantModal?.name} — {v.name}</span>
+                <span className="font-bold text-primary">{formatCurrency(v.price)}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── MÓVIL: tabs Menú / Orden ── */}
       <div className="flex flex-col h-[calc(100vh-112px)] md:hidden">

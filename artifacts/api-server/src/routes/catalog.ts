@@ -51,13 +51,15 @@ async function fetchProducts() {
       name: products.name,
       description: products.description,
       price: products.price,
+      salePrice: products.salePrice,
+      variants: products.variants,
       imageUrl: products.imageUrl,
       active: products.active,
     })
     .from(products)
     .leftJoin(categories, eq(categories.id, products.categoryId))
     .orderBy(asc(products.name));
-  return rows.map((p) => ({ ...p, price: Number(p.price), categoryName: p.categoryName ?? "" }));
+  return rows.map((p) => ({ ...p, price: Number(p.price), salePrice: p.salePrice ? Number(p.salePrice) : null, variants: p.variants ?? null, categoryName: p.categoryName ?? "" }));
 }
 
 productsRouter.get(
@@ -79,6 +81,8 @@ productsRouter.post(
         name: String(name),
         description: description ?? null,
         price: String(price),
+        salePrice: sale_price != null ? String(sale_price) : null,
+        variants: variants ?? null,
         imageUrl: imageUrl ?? null,
         active: active ?? true,
       })
