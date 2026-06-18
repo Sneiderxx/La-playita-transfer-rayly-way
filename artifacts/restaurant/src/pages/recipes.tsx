@@ -59,12 +59,69 @@ export default function Recipes() {
       customFetch(`/api/products/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   });
 
+  const deleteProduct = useMutation({
+    mutationFn: ({ id }: { id: number }) =>
+      customFetch(`/api/products/${id}`, { method: "DELETE" }),
+  });
+
+  const handleOpenEditName = (product: ProductWithExtras, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditNameProduct(product);
+    setEditNameValue(product.name);
+    setEditNameOpen(true);
+  };
+
+  const handleSaveName = () => {
+    if (!editNameProduct || !editNameValue.trim()) return;
+    updateProduct.mutate({
+      id: editNameProduct.id,
+      body: {
+        name: editNameValue.trim(),
+        categoryId: editNameProduct.categoryId,
+        price: Number(editNameProduct.price),
+        active: editNameProduct.active,
+      }
+    }, {
+      onSuccess: () => {
+        toast.success("Nombre actualizado");
+        setEditNameOpen(false);
+        if (selectedProduct?.id === editNameProduct.id) {
+          setSelectedProduct({ ...selectedProduct, name: editNameValue.trim() });
+        }
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
+  };
+
+  const handleDeleteProduct = (product: ProductWithExtras, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`¿Eliminar "${product.name}" del menú?\nEsto también eliminará su receta.`)) return;
+    deleteProduct.mutate({ id: product.id }, {
+      onSuccess: () => {
+        toast.success(`"${product.name}" eliminado`);
+        if (selectedProduct?.id === product.id) {
+          setSelectedProduct(null);
+          setIsEditing(false);
+        }
+        queryClient.invalidateQueries({ queryKey: getListProductsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListRecipesQueryKey() });
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
+  };
+
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [editSalePrice, setEditSalePrice] = useState("");
   const [editVariants, setEditVariants] = useState<Array<{name: string; price: string}>>([]);
   const [draftIngredients, setDraftIngredients] = useState<Array<{ inventoryItemId: number; quantity: number }>>([]);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Editar nombre del producto
+  const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editNameProduct, setEditNameProduct] = useState<ProductWithExtras | null>(null);
+  const [editNameValue, setEditNameValue] = useState("");
 
   const handleSelectProduct = (product: ProductWithExtras) => {
     setSelectedProduct(product);
@@ -204,9 +261,29 @@ export default function Recipes() {
                       {product.salePrice && <span className="bg-orange-500 text-white text-xs px-1 rounded">OFERTA</span>}
                     </div>
                   </div>
-                  <button className={`p-1 rounded hover:bg-black/10 shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}
-                    onClick={(e) => { e.stopPropagation(); handleOpenEditPrice(product); }} title="Editar precios">
+                  {/* Editar nombre */}
+                  <button
+                    className={`p-1 rounded hover:bg-black/10 shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    onClick={(e) => handleOpenEditName(product, e)}
+                    title="Editar nombre"
+                  >
                     <Pencil className="w-3 h-3" />
+                  </button>
+                  {/* Editar precios */}
+                  <button
+                    className={`p-1 rounded hover:bg-black/10 shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`}
+                    onClick={(e) => { e.stopPropagation(); handleOpenEditPrice(product); }}
+                    title="Editar precios"
+                  >
+                    <Tag className="w-3 h-3" />
+                  </button>
+                  {/* Eliminar platillo */}
+                  <button
+                    className={`p-1 rounded hover:bg-red-500/20 shrink-0 text-red-400`}
+                    onClick={(e) => handleDeleteProduct(product, e)}
+                    title="Eliminar platillo"
+                  >
+                    <Trash2 className="w-3 h-3" />
                   </button>
                   {hasRecipe && <ChefHat className={`w-4 h-4 flex-shrink-0 ${selectedProduct?.id === product.id ? "text-primary-foreground/70" : "text-muted-foreground"}`} />}
                 </div>
@@ -338,6 +415,30 @@ export default function Recipes() {
               <Button variant="outline" className="flex-1" onClick={() => setNewProductOpen(false)}>Cancelar</Button>
               <Button className="flex-1" onClick={handleCreateProduct} disabled={createProduct.isPending || !newName || !newPrice || !newCategoryId}>
                 {createProduct.isPending ? "Creando..." : "Crear producto"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editar nombre del platillo */}
+      <Dialog open={editNameOpen} onOpenChange={setEditNameOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Editar nombre</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nombre del platillo</Label>
+              <Input
+                value={editNameValue}
+                onChange={e => setEditNameValue(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSaveName()}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setEditNameOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleSaveName} disabled={updateProduct.isPending || !editNameValue.trim()}>
+                {updateProduct.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
           </div>
