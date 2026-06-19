@@ -19,6 +19,7 @@ export const Role = {
   ADMIN: "ADMIN",
   WAITER: "WAITER",
   CASHIER: "CASHIER",
+  COCINERA: "COCINERA",
 } as const;
 
 export interface LoginRequest {

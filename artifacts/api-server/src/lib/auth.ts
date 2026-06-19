@@ -10,7 +10,7 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET: string = process.env.JWT_SECRET;
 const JWT_EXPIRES = "7d";
 
-export type Role = "ADMIN" | "WAITER" | "CASHIER";
+export type Role = "ADMIN" | "WAITER" | "CASHIER" | "COCINERA";
 
 export interface AuthPayload {
   userId: number;

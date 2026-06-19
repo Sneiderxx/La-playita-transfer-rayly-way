@@ -25,7 +25,7 @@ export const LoginResponse = zod.object({
   user: zod.object({
     id: zod.number(),
     name: zod.string(),
-    role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+    role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
     active: zod.boolean(),
   }),
 });
@@ -33,14 +33,14 @@ export const LoginResponse = zod.object({
 export const GetMeResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
   active: zod.boolean(),
 });
 
 export const ListUsersResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
   active: zod.boolean(),
 });
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
@@ -48,14 +48,14 @@ export const ListUsersResponse = zod.array(ListUsersResponseItem);
 export const CreateUserBody = zod.object({
   name: zod.string(),
   password: zod.string(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
   active: zod.boolean().optional(),
 });
 
 export const CreateUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
   active: zod.boolean(),
 });
 
@@ -66,14 +66,14 @@ export const UpdateUserParams = zod.object({
 export const UpdateUserBody = zod.object({
   name: zod.string().optional(),
   password: zod.string().optional(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]).optional(),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]).optional(),
   active: zod.boolean().optional(),
 });
 
 export const UpdateUserResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  role: zod.enum(["ADMIN", "WAITER", "CASHIER"]),
+  role: zod.enum(["ADMIN", "WAITER", "CASHIER", "COCINERA"]),
   active: zod.boolean(),
 });
 

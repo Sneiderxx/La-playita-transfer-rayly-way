@@ -7,8 +7,9 @@ import {
   inventoryMovements,
   recipes,
   recipeIngredients,
+  orderItems,
 } from "@workspace/db";
-import { and, asc, eq, lte, sql } from "drizzle-orm";
+import { and, asc, eq, lte, sql, ilike } from "drizzle-orm";
 import { requireAuth, requireRole } from "../lib/auth";
 import { asyncHandler } from "../lib/asyncHandler";
 
@@ -74,11 +75,19 @@ productsRouter.post(
       req.body ?? {};
     if (!categoryId || !name || price === undefined)
       return res.status(400).json({ error: "categoryId, name, price required" });
+    const cleanName = String(name).trim();
+    const dup = (
+      await db.select().from(products).where(ilike(products.name, cleanName))
+    )[0];
+    if (dup)
+      return res
+        .status(409)
+        .json({ error: `Ya existe un producto llamado "${dup.name}"` });
     const [created] = await db
       .insert(products)
       .values({
         categoryId: Number(categoryId),
-        name: String(name),
+        name: cleanName,
         description: description ?? null,
         price: String(price),
         imageUrl: imageUrl ?? null,
@@ -97,7 +106,17 @@ productsRouter.put(
       req.body ?? {};
     const updates: Partial<typeof products.$inferInsert> = {};
     if (categoryId !== undefined) updates.categoryId = Number(categoryId);
-    if (name !== undefined) updates.name = String(name);
+    if (name !== undefined) {
+      const cleanName = String(name).trim();
+      const dup = (
+        await db.select().from(products).where(ilike(products.name, cleanName))
+      ).find((p) => p.id !== id);
+      if (dup)
+        return res
+          .status(409)
+          .json({ error: `Ya existe un producto llamado "${dup.name}"` });
+      updates.name = cleanName;
+    }
     if (description !== undefined) updates.description = description;
     if (price !== undefined) updates.price = String(price);
     if (sale_price !== undefined) updates.salePrice = sale_price !== null ? String(sale_price) : null;
@@ -118,8 +137,41 @@ productsRouter.delete(
   requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    await db.update(products).set({ active: false }).where(eq(products.id, id));
-    res.json({ ok: true });
+
+    // Si el producto tiene ventas registradas, no se puede borrar de la base
+    // (rompería el historial). En ese caso se desactiva (soft-delete).
+    const sold = (
+      await db
+        .select({ id: orderItems.id })
+        .from(orderItems)
+        .where(eq(orderItems.productId, id))
+        .limit(1)
+    )[0];
+
+    if (sold) {
+      await db
+        .update(products)
+        .set({ active: false })
+        .where(eq(products.id, id));
+      return res.json({ ok: true, softDeleted: true });
+    }
+
+    // Sin ventas: borrar TODO (ingredientes -> receta -> producto)
+    await db.transaction(async (tx) => {
+      const recipeRows = await tx
+        .select({ id: recipes.id })
+        .from(recipes)
+        .where(eq(recipes.productId, id));
+      for (const r of recipeRows) {
+        await tx
+          .delete(recipeIngredients)
+          .where(eq(recipeIngredients.recipeId, r.id));
+      }
+      await tx.delete(recipes).where(eq(recipes.productId, id));
+      await tx.delete(products).where(eq(products.id, id));
+    });
+
+    res.json({ ok: true, hardDeleted: true });
   }),
 );
 
@@ -420,10 +472,21 @@ inventoryRouter.post(
       req.body ?? {};
     if (!name || !unit)
       return res.status(400).json({ error: "name, unit required" });
+    const cleanName = String(name).trim();
+    const dup = (
+      await db
+        .select()
+        .from(inventoryItems)
+        .where(ilike(inventoryItems.name, cleanName))
+    )[0];
+    if (dup)
+      return res
+        .status(409)
+        .json({ error: `Ya existe un insumo llamado "${dup.name}"` });
     const [created] = await db
       .insert(inventoryItems)
       .values({
-        name: String(name),
+        name: cleanName,
         unit,
         currentQuantity: String(currentQuantity ?? 0),
         minimumStock: String(minimumStock ?? 0),

@@ -38,25 +38,25 @@ function Router() {
         <RequireAuth roles={["ADMIN"]}><AppLayout><Dashboard /></AppLayout></RequireAuth>
       </Route>
       <Route path="/tables">
-        <RequireAuth roles={["ADMIN", "WAITER", "CASHIER"]}><AppLayout><Tables /></AppLayout></RequireAuth>
+        <RequireAuth roles={["ADMIN", "WAITER", "CASHIER", "COCINERA"]}><AppLayout><Tables /></AppLayout></RequireAuth>
       </Route>
       <Route path="/tables/:id/order">
-        <RequireAuth roles={["ADMIN", "WAITER", "CASHIER"]}><AppLayout><TableOrder /></AppLayout></RequireAuth>
+        <RequireAuth roles={["ADMIN", "WAITER", "CASHIER", "COCINERA"]}><AppLayout><TableOrder /></AppLayout></RequireAuth>
       </Route>
       <Route path="/pos">
         <RequireAuth roles={["ADMIN", "CASHIER"]}><AppLayout><POS /></AppLayout></RequireAuth>
       </Route>
       <Route path="/kitchen">
-        <RequireAuth roles={["ADMIN", "WAITER"]}><AppLayout><Kitchen /></AppLayout></RequireAuth>
+        <RequireAuth roles={["ADMIN", "WAITER", "COCINERA"]}><AppLayout><Kitchen /></AppLayout></RequireAuth>
       </Route>
       <Route path="/inventory">
-        <RequireAuth roles={["ADMIN"]}><AppLayout><Inventory /></AppLayout></RequireAuth>
+        <RequireAuth roles={["ADMIN", "COCINERA"]}><AppLayout><Inventory /></AppLayout></RequireAuth>
       </Route>
       <Route path="/inventory-purchases">
         <RequireAuth roles={["ADMIN"]}><AppLayout><InventoryPurchases /></AppLayout></RequireAuth>
       </Route>
       <Route path="/recipes">
-        <RequireAuth roles={["ADMIN"]}><AppLayout><Recipes /></AppLayout></RequireAuth>
+        <RequireAuth roles={["ADMIN", "COCINERA"]}><AppLayout><Recipes /></AppLayout></RequireAuth>
       </Route>
       <Route path="/expenses">
         <RequireAuth roles={["ADMIN", "CASHIER"]}><AppLayout><Expenses /></AppLayout></RequireAuth>

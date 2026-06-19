@@ -218,6 +218,7 @@ export default function Users() {
                   <SelectItem value="ADMIN">Administrator</SelectItem>
                   <SelectItem value="CASHIER">Cashier</SelectItem>
                   <SelectItem value="WAITER">Waiter</SelectItem>
+                  <SelectItem value="COCINERA">Cocinera</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -251,6 +252,7 @@ export default function Users() {
                   <SelectItem value="ADMIN">Administrator</SelectItem>
                   <SelectItem value="CASHIER">Cashier</SelectItem>
                   <SelectItem value="WAITER">Waiter</SelectItem>
+                  <SelectItem value="COCINERA">Cocinera</SelectItem>
                 </SelectContent>
               </Select>
             </div>

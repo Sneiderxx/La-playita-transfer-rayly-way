@@ -98,8 +98,12 @@ export default function Recipes() {
     e.stopPropagation();
     if (!confirm(`¿Eliminar "${product.name}" del menú?\nEsto también eliminará su receta.`)) return;
     deleteProduct.mutate({ id: product.id }, {
-      onSuccess: () => {
-        toast.success(`"${product.name}" eliminado`);
+      onSuccess: (res: any) => {
+        if (res?.softDeleted) {
+          toast.success(`"${product.name}" tiene ventas, se ocultó del menú`);
+        } else {
+          toast.success(`"${product.name}" eliminado`);
+        }
         if (selectedProduct?.id === product.id) {
           setSelectedProduct(null);
           setIsEditing(false);

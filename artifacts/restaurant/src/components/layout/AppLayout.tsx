@@ -11,13 +11,13 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Panel Principal", icon: LayoutDashboard, roles: ["ADMIN"] },
-  { href: "/tables", label: "Mesas", icon: UtensilsCrossed, roles: ["ADMIN", "WAITER", "CASHIER"] },
-  { href: "/kitchen", label: "Cocina", icon: ChefHat, roles: ["ADMIN", "WAITER"] },
+  { href: "/tables", label: "Mesas", icon: UtensilsCrossed, roles: ["ADMIN", "WAITER", "CASHIER", "COCINERA"] },
+  { href: "/kitchen", label: "Cocina", icon: ChefHat, roles: ["ADMIN", "WAITER", "COCINERA"] },
   { href: "/pos", label: "Cobros", icon: Receipt, roles: ["ADMIN", "CASHIER"] },
-  { label: "─ Inventario", separator: true, roles: ["ADMIN"] },
-  { href: "/inventory", label: "Inventario", icon: Package, roles: ["ADMIN"] },
+  { label: "─ Inventario", separator: true, roles: ["ADMIN", "COCINERA"] },
+  { href: "/inventory", label: "Inventario", icon: Package, roles: ["ADMIN", "COCINERA"] },
   { href: "/inventory-purchases", label: "Facturas de Compra", icon: FileText, roles: ["ADMIN"] },
-  { href: "/recipes", label: "Recetas", icon: BookOpen, roles: ["ADMIN"] },
+  { href: "/recipes", label: "Recetas", icon: BookOpen, roles: ["ADMIN", "COCINERA"] },
   { label: "─ Finanzas", separator: true, roles: ["ADMIN"] },
   { href: "/expenses", label: "Gastos", icon: DollarSign, roles: ["ADMIN", "CASHIER"] },
   { href: "/fixed-costs", label: "Gastos Fijos", icon: Building2, roles: ["ADMIN"] },

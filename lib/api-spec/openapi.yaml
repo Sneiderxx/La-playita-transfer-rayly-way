@@ -927,7 +927,7 @@ components:
 
     Role:
       type: string
-      enum: [ADMIN, WAITER, CASHIER]
+      enum: [ADMIN, WAITER, CASHIER, COCINERA]
 
     LoginRequest:
       type: object
