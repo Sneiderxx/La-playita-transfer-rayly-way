@@ -23,6 +23,8 @@ export default function Login() {
         if (data.user.role === "ADMIN") setLocation("/dashboard");
         else if (data.user.role === "WAITER") setLocation("/tables");
         else if (data.user.role === "CASHIER") setLocation("/pos");
+        else if (data.user.role === "COCINERA") setLocation("/kitchen");
+        else setLocation("/tables");
       },
       onError: (error) => {
         toast.error("Login failed: " + error.message);
